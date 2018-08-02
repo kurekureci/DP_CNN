@@ -1,0 +1,16 @@
+0. Mezi soubory odevzdanımi v informaèním systému chybí v adresáøi Vysledna_CNN soubor s názvem saved_model.data-00000-of-00001
+z dùvodu jeho velikosti. Soubor je nahrán na CD u diplomové práce nebo je ke staení na následujícím odkaze: https://drive.google.com/open?id=1sJS5trmYkhQhOcrWy98u-qm6Lb22Zcw3
+
+1. Programy potøebné pro spuštìní:
+	- Python (testováno na verzi 3.5.3)
+	- Anaconda
+	- TensorFlow
+	- CUDA Toolkit s ovladaèi, cuDNN (pro vıpoèty na grafické kartì)
+	- knihovna OpenCV zkompilovaná s rozšíøením opencv_contrib
+
+2. Do sloky se zdrojovım kódem vlote obrázek (ve formátu jpg nebo png)
+
+3. V pøíkazové øádce Anaconda pøejdìte do adresáøe se zdrojovım kódem
+
+4. Spuste program pøíkazem: python detekcni_program.py --img_name=NAZEV_OBRAZKU.png
+(NAZEV_OBRAZKU nahraïte názvem obrázku)

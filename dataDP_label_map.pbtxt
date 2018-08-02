@@ -1,0 +1,40 @@
+item {
+  id: 1
+  name: "spine"
+}
+item {
+  id: 2
+  name: "heart"
+}
+item {
+  id: 3
+  name: "lung"
+}
+item {
+  id: 4
+  name: "head"
+}
+item {
+  id: 5
+  name: "liver"
+}
+item {
+  id: 6
+  name: "aorta"
+}
+item {
+  id: 7
+  name: "kidney"
+}
+item {
+  id: 8
+  name: "spleen"
+}
+item {
+  id: 9
+  name: "lung2"
+}
+item {
+  id: 10
+  name: "kidney2"
+}
