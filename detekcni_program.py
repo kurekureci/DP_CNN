@@ -55,6 +55,7 @@ def create_example(bb_zn, image, image_name):
 
 save_name = 'oblasti'
 method = "both"  # SW pro sliding window, SS pro selective search, both pro obe
+method2 = 'q'  # q = quality / f = fast - pro zmenu metody Selective Search
 
 cv2.setUseOptimized(True)  # urychleni s pouzitim multithreads
 cv2.setNumThreads(4)
@@ -99,8 +100,7 @@ if method == "SW" or method == "both":
 
         for y in range(0, img_input.shape[0], step):
             for x in range(0, img_input.shape[1], step):
-                window = img_input[y:y +
-                                   windowSize[1], x:x + windowSize[0]]
+                window = img_input[y:y + windowSize[1], x:x + windowSize[0]]
 
                 # pokud okno nema poz. vel. - pryc
                 if window.shape[0] != height[i] or window.shape[1] != width[i]:
@@ -162,7 +162,6 @@ if method == "SS" or method == "both":
     """Selective search"""
     ss = cv2.ximgproc.segmentation.createSelectiveSearchSegmentation()  # vytvori SSS. objekt
     ss.setBaseImage(img_input)  # nastaveni vstup. obr pro segmentaci
-    method2 = 'q'  # q = quality / f = fast - pro zmenu metody Selective Search
 
     if (method2 == 'f'):  # fast - rychla, ale s mene vystupy
         ss.switchToSelectiveSearchFast()
@@ -192,17 +191,17 @@ writer.close()
 
 """Definice parametru vrstev"""
 # 1. konvolucni vrstva
-size_filter1 = 9          # filtry velikosti 5 x 5 px
+size_filter1 = 9          # filtry velikosti 9 x 9 px
 num_filter1 = 16          # pocet filtru ve vrstve 16
 # 2. konvolucni vrstva
-size_filter2 = 9             # filtry velikosti 5 x 5 px
+size_filter2 = 9             # filtry velikosti 9 x 9 px
 num_filter2 = 32             # pocet filtru ve vrstve 32
 # 3. konvolucni vrstva
-size_filter3 = 11             # filtry velikosti 5 x 5 px
+size_filter3 = 11             # filtry velikosti 11 x 11 px
 num_filter3 = 64             # pocet filtru ve vrstve 64
 # 4. konvolucni vrstva
-size_filter4 = 11             # filtry velikosti 5 x 5 px
-num_filter4 = 128            # pocet filtru ve vrstve 64
+size_filter4 = 11             # filtry velikosti 11 x 11 px
+num_filter4 = 128            # pocet filtru ve vrstve 128
 # plne propojena vrstva
 size_fully1 = 128            # pocet neuronu 1. plne propojene vrstvy 128
 
@@ -311,7 +310,7 @@ def new_fully_layer(input, num_inputs, num_outputs, relu=True, name="Fully_conne
     input = vstupni vrstva = 2D tensor [pocet obr, pocet vstupu]
     num_inputs = pocet vstupnich neuronu
     num_outputs = pocet vystupnich neuronu
-    relu = True = i ReLU vrstva
+    relu = True = ReLU vrstva
     Vystup:
     layer = plne propojena vrstva
     """
@@ -406,7 +405,7 @@ session.run(iterator_t1.initializer)
 def classify():
     """Funkce pro klasifikaci oblasti pomoci CNN.
 
-    Vystup:
+    Vystupy:
     class_pred = predikovane tridy
     class_value = vystupni hodnoty ze softmax funkce
     roi_position = pozice oblasti
@@ -493,42 +492,40 @@ def bb_IoU(bbA, bbB):  # vypocet Intersection over Union (IoU)
 
 
 def non_max_overlap(boxes, threshold, class_value2, stop):
-    """Funkce pro odstraneni prekryvajicich se bounding boxu (vysledku klasifikace oblasti).
-
-        (s IoU > prah)
-        Felzenszwalb et al.
+    """Funkce pro vyber nejvice prekryvajicich se bounding boxu.
 
     Vstupy: boxes = detekovane bounding boxy
             threshold = prah prekryvu oblasti
+            class_value2 = hodnota softmax fce DP_CNN
+            stop = pocet vybranych boxu s nejvice prekryvy
     """
     if len(boxes) == 0:  # if there are no boxes, return an empty list
         return []
 
     stop = min(stop, int(round(boxes.shape[0] / 2)))  # udava, kolik bude boxu na vystupu
-    xmin = boxes[:, 0]  # coordinates of the bounding boxes
+    xmin = boxes[:, 0]
     ymin = boxes[:, 1]
     xmax = boxes[:, 2]
     ymax = boxes[:, 3]
-    area = (xmax - xmin + 1) * (ymax - ymin + 1)  # area of BB
+    area = (xmax - xmin + 1) * (ymax - ymin + 1)  # plocha boxu
 
     twins = np.zeros((len(boxes),), dtype=np.int)
     pick = []
 
-    for i1, i2 in enumerate(boxes):   # loop over all boxes
-        for j1, j2 in enumerate(boxes):  # loop over boxes without the picked one (i)
+    for i1, i2 in enumerate(boxes):
+        for j1, j2 in enumerate(boxes):  # pres vsechny boxy krome vybraneho
             if j1 != i1:
                 xx1 = max(xmin[i1], xmin[j1])
                 yy1 = max(ymin[i1], ymin[j1])
                 xx2 = min(xmax[i1], xmax[j1])
                 yy2 = min(ymax[i1], ymax[j1])
 
-                w = max(0, xx2 - xx1 + 1)  # width of interBB
-                h = max(0, yy2 - yy1 + 1)  # height of interBB
+                w = max(0, xx2 - xx1 + 1)  # sirka vnitrniho bb
+                h = max(0, yy2 - yy1 + 1)  # vyska vnitrniho bb
                 inArea = float(w * h)
-                # overlap between the computed
-                overlap = inArea / (area[j1] + area[i1] - inArea)
+                overlap = inArea / (area[j1] + area[i1] - inArea)  # prekryv
 
-                if overlap > threshold:  # sufficient overlap -> suppress current BB
+                if overlap > threshold:  # dostatecny prekryv -> zaznam
                     if class_value2[j1] < class_value2[i1]:
                         twins[i1] = twins[i1] + 1
                     else:
@@ -538,10 +535,10 @@ def non_max_overlap(boxes, threshold, class_value2, stop):
         if twins.shape[0] > 0:
             poz = np.argmax(twins, axis=0)
             pick.append(boxes[poz, :])
-            twins = np.delete(twins, poz, 0)  # delete indexes from index list
+            twins = np.delete(twins, poz, 0)  # vymaze indexy z index listu
 
     pick = np.array(pick)
-    return pick, twins  # vybran byl ten s nejvice prekryvy :D
+    return pick
 
 
 def pick_the_best(boxes, class_value2, stop):
@@ -549,17 +546,18 @@ def pick_the_best(boxes, class_value2, stop):
 
     Vstupy: boxes = detekovane bounding boxy
             class_value2 = vystupni hodnoty ze softmax fce CNN pro boxy
+            stop = pocet vybranych boxu s nej softmax fci
     """
     pick = []
     value = []
-    stop = min(stop, int(round(boxes.shape[0] / 2)))  # udava, kolik bude boxu na vystupu
+    stop = min(stop, int(round(boxes.shape[0] / 2)))  # kolik bude boxu na vystupu
 
     for i in range(0, stop):
         if boxes.shape[0] > 0:
             poz = np.argmax(class_value2, axis=0)
             pick.append(boxes[poz, :])
             value.append(class_value2[poz])
-            boxes = np.delete(boxes, poz, 0)  # delete indexes from index list
+            boxes = np.delete(boxes, poz, 0)
             class_value2 = np.delete(class_value2, poz, 0)
 
     pick = np.array(pick)
@@ -1087,7 +1085,7 @@ for i in range(1, 11):   # prochazeni jednotlivych trid
             if len(pick.shape) > 1:
                 stop = 2
                 pick1, value2 = pick_the_best(pick, value, stop)
-                pick2, twins = non_max_overlap(pick, 0.5, value, stop)
+                pick2 = non_max_overlap(pick, 0.5, value, stop)
 
                 if len(pick1.shape) > 1:
                     pick3 = np.concatenate((pick1, pick2), axis=0)
